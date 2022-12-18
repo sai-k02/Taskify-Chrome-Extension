@@ -10,7 +10,8 @@
     "build": "plasmo build"
   },
   "dependencies": {
-    "plasmo": "0.57.2",
+    "@plasmohq/storage": "0.13.1",
+    "plasmo": "0.60.0",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
@@ -21,11 +22,18 @@
     "@types/react": "18.0.21",
     "@types/react-dom": "18.0.6",
     "prettier": "2.7.1",
-    "typescript": "4.8.4"
+    "querystring-es3": "^0.2.1",
+    "typescript": "4.8.4",
+    "url": "^0.11.0"
   },
   "manifest": {
     "host_permissions": [
-      "https://*/*"
+      "https://*/*",
+      "https://todoist.com/*"
+    ],
+    "permissions": [
+      "identity",
+      "storage"
     ]
   }
 }
