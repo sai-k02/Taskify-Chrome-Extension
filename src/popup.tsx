@@ -4,7 +4,7 @@ import { useStorage } from "@plasmohq/storage/hook"
 import { AddProjectArgs, Project, Section, Task, TodoistApi, TodoistEntity } from '@doist/todoist-api-typescript'
 import { getOAuthToken, getAccessToken } from './background'
 import { appendFile } from "fs"
-import { useQuery } from "react-query"
+import { useQuery, QueryClient, QueryClientProvider } from "react-query"
 type BLACKBOARD_GET_TASKS_RESPONSE = {
   results: BLACKBOARD_RAW_TASK[]
 }
@@ -15,11 +15,21 @@ type BLACKBOARD_RAW_TASK = {
   calendarName: string
 }
 
+const queryClient = new QueryClient()
 
 function IndexPopup() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Index />
+    </QueryClientProvider>
+  )
+}
+
+
+function Index() {
   const [OAuthToken, setOAuthToken] = useStorage<string>("OAuthToken", "")
   const [AccessToken, setAccessToken] = useStorage<string>("AccessToken", "")
-
+  const { data, status } = useQuery<BLACKBOARD_RAW_TASK[]>("tasks", getTasks);
   // TODO: USE EFFECT ON GETTING TASKS
   const [Tasks, setTasks] = useState<BLACKBOARD_RAW_TASK[]>([])
   const [Error, setError] = useState<string>("")
@@ -36,7 +46,8 @@ function IndexPopup() {
         backgroundColor: "#F3F3EB"
       }}>
       <h1> Blackboard </h1>
-      {Tasks && Tasks.length > 0 && Tasks.map((task: BLACKBOARD_RAW_TASK, index: number) => { return (<div key={index} style={{ "width": "100%", backgroundColor: "#808080", borderRadius: "5px", textAlign: "center", color: "white", "marginBottom": "5px" }}>{task.title}</div>) })}
+      {/* {Tasks && Tasks.length > 0 && Tasks.map((task: BLACKBOARD_RAW_TASK, index: number) => { return (<div key={index} style={{ "width": "100%", backgroundColor: "#808080", borderRadius: "5px", textAlign: "center", color: "white", "marginBottom": "5px" }}>{task.title}</div>) })} */}
+      {data && data.length > 0 && data.map((task: BLACKBOARD_RAW_TASK, index: number) => { return (<div key={index} style={{ "width": "100%", backgroundColor: "#808080", borderRadius: "5px", textAlign: "center", color: "white", "marginBottom": "5px" }}>{task.title}</div>) })}
       <button onClick={() => getTasks().then((result) => { setTasks(result) }).catch((error) => { setError(error.message) })
       }>Get Tasks</button>
       <button onClick={() => { setTasks([]) }
@@ -76,7 +87,7 @@ function IndexPopup() {
         Get Access Token
       </button>
 
-      <button onClick={() => updateTasks(Tasks, TODOIST_API)}>
+      <button onClick={() => updateTasks(data, TODOIST_API)}>
         updateTasks
       </button>
 
@@ -122,10 +133,11 @@ async function updateTasks(tasks: BLACKBOARD_RAW_TASK[], TODOIST_API: TodoistApi
     let task: BLACKBOARD_RAW_TASK = tasks[i]
     const section: Section = await validateSection(getCleanClassName(task.calendarName), project, TODOIST_API)
     // CREATE TASK
-    const addedTask = await TODOIST_API.addTask({ content: task.title, projectId: project.id, sectionId: section.id })
-
-    // CREATE TASK
-    console.log("Added Task " + addedTask.content + " under " + project.name + " | " + section.name)
+    if (!(await checkIfTaskExists(task.title, section, project, TODOIST_API))) {
+      const addedTask = await TODOIST_API.addTask({ content: task.title, projectId: project.id, sectionId: section.id })
+      // CREATE TASK
+      console.log("Added Task " + addedTask.content + " under " + project.name + " | " + section.name)
+    }
   }
 
 }
@@ -179,6 +191,21 @@ async function validateSection(givenSection: string, project: Project, TODOIST_A
 
   return sectionToReturn
 
+}
+
+async function checkIfTaskExists(givenTask: string, givenSection: Section, project: Project, TODOIST_API: TodoistApi) {
+  // GET ALL TASKS
+  const tasks = await TODOIST_API.getTasks({ sectionId: givenSection.id, projectId: project.id })
+
+  let exists = false
+
+  tasks && tasks.length > 0 && tasks.forEach((task: Task) => {
+    if (task.content == givenTask)
+      exists = true
+  })
+
+
+  return exists
 }
 
 export default IndexPopup
