@@ -33,10 +33,9 @@ export const getOAuthToken = async (): Promise<string> => {
 }
 
 
-export const getAccessToken = async (OAuthToken: string): Promise<String> => {
+export const getAccessToken = async (OAuthToken: string): Promise<string> => {
 
     console.log("Getting access token with :" + OAuthToken)
-    var AccessToken = ""
 
     const url = new URL("https://todoist.com/oauth/access_token/")
     url.searchParams.append("client_id", "ebe92c2f20604591926e4507675783d4")
@@ -47,10 +46,11 @@ export const getAccessToken = async (OAuthToken: string): Promise<String> => {
         method: "POST", headers: { 'Content-Type': 'application/json' },
     })
 
-    console.log(await response.json())
+    let responseJSON = await response.json()
+    let token = responseJSON["access_token"]
 
     // RETRIEVE API_KEY FROM RESPONSE
-    return AccessToken
+    return token
 }
 
 
